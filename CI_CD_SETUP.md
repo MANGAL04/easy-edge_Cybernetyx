@@ -51,7 +51,6 @@ For enhanced functionality, you can set up these secrets in your repository:
 2. Add the following secrets if needed:
 
 ```
-CODECOV_TOKEN - For code coverage reporting
 HOMEBREW_TAP_TOKEN - For automatic Homebrew formula updates
 ```
 
@@ -70,13 +69,10 @@ HOMEBREW_TAP_TOKEN - For automatic Homebrew formula updates
 
 ```bash
 # Install test dependencies
-pip install pytest pytest-cov
+pip install pytest
 
 # Run tests
 pytest
-
-# Run with coverage
-pytest --cov=. --cov-report=html
 ```
 
 ### Creating a Release

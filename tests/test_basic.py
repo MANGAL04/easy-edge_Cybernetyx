@@ -14,13 +14,16 @@ def test_help_command():
                           capture_output=True, text=True)
     assert result.returncode == 0
     assert "usage:" in result.stdout.lower()
+    assert "--version" in result.stdout
 
 def test_version_command():
     """Test that version command works"""
     result = subprocess.run([sys.executable, "easy_edge.py", "--version"], 
                           capture_output=True, text=True)
-    # Version command might not exist, so we just check it doesn't crash
-    assert result.returncode in [0, 1]
+    # Version command should work and return 0
+    assert result.returncode == 0
+    assert "easy-edge" in result.stdout
+    assert "1.0.0" in result.stdout
 
 def test_models_directory_exists():
     """Test that models directory exists"""

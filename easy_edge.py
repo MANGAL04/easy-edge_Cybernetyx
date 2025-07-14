@@ -255,6 +255,7 @@ class EasyEdge:
 
 @click.group()
 @click.option('--models-dir', default='models', help='Directory to store models')
+@click.version_option(version='1.0.0', prog_name='easy-edge')
 @click.pass_context
 def cli(ctx, models_dir):
     """Easy Edge - Run LLMs locally like Ollama"""
