@@ -1,9 +1,9 @@
 # Easy Edge
 
-[![CI](https://github.com/criminact/easy-edge/workflows/CI/badge.svg)](https://github.com/criminact/easy-edge/actions/workflows/ci.yml)
+[![CI/CD](https://github.com/criminact/easy-edge/workflows/CI%2FCD%20Pipeline/badge.svg)](https://github.com/criminact/easy-edge/actions/workflows/ci-cd.yml)
 [![Release](https://github.com/criminact/easy-edge/workflows/Release/badge.svg)](https://github.com/criminact/easy-edge/actions/workflows/release.yml)
-[![Docker](https://github.com/criminact/easy-edge/workflows/Docker/badge.svg)](https://github.com/criminact/easy-edge/actions/workflows/docker.yml)
-[![Security](https://github.com/criminact/easy-edge/workflows/Security/badge.svg)](https://github.com/criminact/easy-edge/actions/workflows/security.yml)
+[![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 A simple Ollama-like tool for running Large Language Models (LLMs) locally using llama.cpp under the hood.
 
@@ -202,11 +202,9 @@ This project uses comprehensive GitHub Actions for automated testing, building, 
 
 ### Workflows
 
-- **`ci.yml`**: Runs tests and builds on every push/PR
+- **`ci-cd.yml`**: Runs tests and builds on every push/PR
 - **`release.yml`**: Creates releases with executables for all platforms
-- **`docker.yml`**: Builds and publishes Docker images
-- **`security.yml`**: Scans for vulnerabilities
-- **`update-homebrew.yml`**: Updates Homebrew tap automatically
+- **Homebrew Integration**: Ready for automatic Homebrew tap updates
 
 ### Automated Release Process
 
@@ -217,12 +215,11 @@ This project uses comprehensive GitHub Actions for automated testing, building, 
    ```
 
 2. **GitHub Actions automatically:**
-   - ✅ Runs tests on all platforms
+   - ✅ Runs tests on multiple Python versions (3.8-3.12)
    - 🔨 Builds executables (Windows, macOS, Linux)
    - 📦 Creates GitHub release with downloads
-   - 🐳 Publishes Docker images
-   - 🍺 Updates Homebrew tap
-   - 🔒 Runs security scans
+   - 🔍 Generates SHA256 checksums for verification
+   - 🍺 Ready for Homebrew tap updates
 
 ### Manual Release
 
