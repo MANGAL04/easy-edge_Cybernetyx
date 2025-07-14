@@ -43,7 +43,7 @@ def main():
         print("Usage: python calculate_sha256.py <file_path_or_url>")
         print("Examples:")
         print("  python calculate_sha256.py dist/easy-edge-macos")
-        print("  python calculate_sha256.py https://github.com/yourusername/easy-edge/archive/v1.0.0.tar.gz")
+        print("  python calculate_sha256.py https://github.com/criminact/easy-edge/archive/v1.0.0.tar.gz")
         sys.exit(1)
     
     target = sys.argv[1]

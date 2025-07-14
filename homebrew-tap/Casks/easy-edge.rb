@@ -2,10 +2,10 @@ cask "easy-edge" do
   version "1.0.0"
   sha256 "YOUR_BINARY_SHA256_HERE"  # You'll need to calculate this for the binary
 
-  url "https://github.com/yourusername/easy-edge/releases/download/v#{version}/easy-edge-macos"
+  url "https://github.com/criminact/easy-edge/releases/download/v#{version}/easy-edge-macos"
   name "Easy Edge"
   desc "A simple Ollama-like tool for running LLMs locally"
-  homepage "https://github.com/yourusername/easy-edge"
+  homepage "https://github.com/criminact/easy-edge"
 
   livecheck do
     url :url
@@ -61,6 +61,6 @@ cask "easy-edge" do
       # Run interactive chat
       easy-edge run gemma-3-1b-it-qat-q4_0-gguf --interactive
       
-    For more information, visit: https://github.com/yourusername/easy-edge
+    For more information, visit: https://github.com/criminact/easy-edge
   EOS
 end 

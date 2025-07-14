@@ -1,7 +1,7 @@
 class EasyEdge < Formula
   desc "A simple Ollama-like tool for running LLMs locally"
-  homepage "https://github.com/yourusername/easy-edge"
-  url "https://github.com/yourusername/easy-edge/archive/v1.0.0.tar.gz"
+  homepage "https://github.com/criminact/easy-edge"
+  url "https://github.com/criminact/easy-edge/archive/v1.0.0.tar.gz"
   sha256 "YOUR_SHA256_HERE"
   license "MIT"
 

@@ -1,9 +1,9 @@
 # Easy Edge
 
-[![CI](https://github.com/yourusername/easy-edge/workflows/CI/badge.svg)](https://github.com/yourusername/easy-edge/actions/workflows/ci.yml)
-[![Release](https://github.com/yourusername/easy-edge/workflows/Release/badge.svg)](https://github.com/yourusername/easy-edge/actions/workflows/release.yml)
-[![Docker](https://github.com/yourusername/easy-edge/workflows/Docker/badge.svg)](https://github.com/yourusername/easy-edge/actions/workflows/docker.yml)
-[![Security](https://github.com/yourusername/easy-edge/workflows/Security/badge.svg)](https://github.com/yourusername/easy-edge/actions/workflows/security.yml)
+[![CI](https://github.com/criminact/easy-edge/workflows/CI/badge.svg)](https://github.com/criminact/easy-edge/actions/workflows/ci.yml)
+[![Release](https://github.com/criminact/easy-edge/workflows/Release/badge.svg)](https://github.com/criminact/easy-edge/actions/workflows/release.yml)
+[![Docker](https://github.com/criminact/easy-edge/workflows/Docker/badge.svg)](https://github.com/criminact/easy-edge/actions/workflows/docker.yml)
+[![Security](https://github.com/criminact/easy-edge/workflows/Security/badge.svg)](https://github.com/criminact/easy-edge/actions/workflows/security.yml)
 
 A simple Ollama-like tool for running Large Language Models (LLMs) locally using llama.cpp under the hood.
 
@@ -19,7 +19,7 @@ A simple Ollama-like tool for running Large Language Models (LLMs) locally using
 
 ### Option 1: Download Pre-built Executable (Recommended)
 
-Download the latest release for your platform from the [Releases page](https://github.com/yourusername/easy-edge/releases).
+Download the latest release for your platform from the [Releases page](https://github.com/criminact/easy-edge/releases).
 
 ### Option 2: Install from Source
 
@@ -44,7 +44,7 @@ Download the latest release for your platform from the [Releases page](https://g
 **macOS (Homebrew):**
 ```bash
 # Add the tap
-brew tap yourusername/easy-edge
+brew tap criminact/easy-edge
 
 # Install Easy Edge
 brew install easy-edge

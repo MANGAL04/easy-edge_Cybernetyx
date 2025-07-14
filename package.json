@@ -23,12 +23,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/easy-edge.git"
+    "url": "https://github.com/criminact/easy-edge.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/easy-edge/issues"
+    "url": "https://github.com/criminact/easy-edge/issues"
   },
-  "homepage": "https://github.com/yourusername/easy-edge#readme",
+  "homepage": "https://github.com/criminact/easy-edge#readme",
   "engines": {
     "node": ">=14.0.0"
   },

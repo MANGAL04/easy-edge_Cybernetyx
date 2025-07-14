@@ -1,12 +1,12 @@
 # Homebrew Tap for Easy Edge
 
-This repository contains the Homebrew formula for [Easy Edge](https://github.com/yourusername/easy-edge), a simple Ollama-like tool for running LLMs locally.
+This repository contains the Homebrew formula for [Easy Edge](https://github.com/criminact/easy-edge), a simple Ollama-like tool for running LLMs locally.
 
 ## Installation
 
 ```bash
 # Add the tap
-brew tap yourusername/easy-edge
+brew tap criminact/easy-edge
 
 # Install Easy Edge
 brew install easy-edge
@@ -45,7 +45,7 @@ brew uninstall easy-edge
 To install from source:
 
 ```bash
-brew install --build-from-source yourusername/easy-edge/easy-edge
+brew install --build-from-source criminact/easy-edge/easy-edge
 ```
 
 ## License

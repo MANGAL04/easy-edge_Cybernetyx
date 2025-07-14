@@ -6,15 +6,15 @@ This guide will help you set up Homebrew distribution for Easy Edge.
 
 1. A GitHub account
 2. Two GitHub repositories:
-   - Main repository: `yourusername/easy-edge`
-   - Homebrew tap repository: `yourusername/homebrew-tap`
+   - Main repository: `criminact/easy-edge`
+   - Homebrew tap repository: `criminact/homebrew-tap`
 
 ## Step 1: Create the Homebrew Tap Repository
 
 1. **Create a new GitHub repository** named `homebrew-tap`
 2. **Clone it locally:**
    ```bash
-   git clone https://github.com/yourusername/homebrew-tap.git
+   git clone https://github.com/criminact/homebrew-tap.git
    cd homebrew-tap
    ```
 
@@ -42,7 +42,7 @@ In your main `easy-edge` repository, go to **Settings > Secrets and variables > 
 
 ## Step 3: Update Repository URLs
 
-Replace `yourusername` with your actual GitHub username in these files:
+Replace `criminact` with your actual GitHub username in these files:
 
 - `homebrew-tap/Formula/easy-edge.rb`
 - `homebrew-tap/Casks/easy-edge.rb`
@@ -55,7 +55,7 @@ When you create a release, you'll need to calculate SHA256 hashes:
 
 ```bash
 # For source tarball
-python scripts/calculate_sha256.py https://github.com/yourusername/easy-edge/archive/v1.0.0.tar.gz
+python scripts/calculate_sha256.py https://github.com/criminact/easy-edge/archive/v1.0.0.tar.gz
 
 # For macOS binary
 python scripts/calculate_sha256.py dist/easy-edge-macos
@@ -94,7 +94,7 @@ Users can now install Easy Edge with:
 
 ```bash
 # Add your tap
-brew tap yourusername/easy-edge
+brew tap criminact/easy-edge
 
 # Install Easy Edge
 brew install easy-edge
@@ -120,7 +120,7 @@ For wider distribution, you can submit to Homebrew core:
    - Update the formula/cask file
 
 2. **Formula not found:**
-   - Make sure the tap is added: `brew tap yourusername/easy-edge`
+   - Make sure the tap is added: `brew tap criminact/easy-edge`
    - Check that the repository exists and is public
 
 3. **Installation fails:**

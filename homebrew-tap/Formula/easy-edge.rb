@@ -1,10 +1,10 @@
 class EasyEdge < Formula
   desc "A simple Ollama-like tool for running LLMs locally"
-  homepage "https://github.com/yourusername/easy-edge"
-  url "https://github.com/yourusername/easy-edge/archive/v1.0.0.tar.gz"
+  homepage "https://github.com/criminact/easy-edge"
+  url "https://github.com/criminact/easy-edge/archive/v1.0.0.tar.gz"
   sha256 "YOUR_SHA256_HERE"  # You'll need to calculate this
   license "MIT"
-  head "https://github.com/yourusername/easy-edge.git", branch: "main"
+  head "https://github.com/criminact/easy-edge.git", branch: "main"
 
   depends_on "python@3.9"
 
@@ -63,7 +63,7 @@ class EasyEdge < Formula
         # Run interactive chat
         easy-edge run gemma-3-1b-it-qat-q4_0-gguf --interactive
         
-      For more information, visit: https://github.com/yourusername/easy-edge
+      For more information, visit: https://github.com/criminact/easy-edge
     EOS
   end
 end 
