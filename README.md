@@ -25,7 +25,7 @@ Download the latest release for your platform from the [Releases page](https://g
 
 1. **Clone the repository:**
    ```bash
-   git clone <your-repo-url>
+   git clone https://github.com/criminact/easy-edge.git
    cd easy-edge
    ```
 
