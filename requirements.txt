@@ -1,0 +1,6 @@
+llama-cpp-python==0.2.11
+requests==2.32.4
+tqdm==4.67.1
+click==8.1.7
+rich==13.7.0
+huggingface-hub==0.33.4 
