@@ -16,6 +16,15 @@ from rich.prompt import Prompt
 from rich.panel import Panel
 from tqdm import tqdm
 import huggingface_hub
+import re
+import tempfile
+import shutil
+import subprocess
+from datasets import Dataset
+from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments, Trainer, DataCollatorForLanguageModeling
+import torch
+from peft import LoraConfig, get_peft_model, TaskType
+import bitsandbytes as bnb
 
 # Try to import llama-cpp-python
 try:
@@ -253,6 +262,51 @@ class EasyEdge:
         
         console.print("\nGoodbye!")
 
+def parse_modelfile(modelfile_path):
+    """Parse a Modelfile and return a dict of its instructions."""
+    config = {
+        'FROM': None,
+        'PARAMETER': {},
+        'SYSTEM': None,
+        'MESSAGES': [],
+        'HF_TOKEN': None,
+        'TEMPLATE': None
+    }
+    with open(modelfile_path, 'r') as f:
+        template_lines = []
+        in_template = False
+        for line in f:
+            line = line.rstrip('\n')
+            if not line or line.strip().startswith('#'):
+                continue
+            if line.startswith('FROM '):
+                config['FROM'] = line[len('FROM '):].strip()
+            elif line.startswith('PARAMETER '):
+                param = line[len('PARAMETER '):].strip()
+                key, value = param.split(' ', 1)
+                config['PARAMETER'][key] = value
+            elif line.startswith('SYSTEM '):
+                config['SYSTEM'] = line[len('SYSTEM '):].strip()
+            elif line.startswith('MESSAGE '):
+                m = re.match(r'MESSAGE (\w+) (.+)', line)
+                if m:
+                    role, content = m.groups()
+                    config['MESSAGES'].append({'role': role, 'content': content})
+            elif line.startswith('HF_TOKEN '):
+                config['HF_TOKEN'] = line[len('HF_TOKEN '):].strip()
+            elif line.startswith('TEMPLATE '):
+                in_template = True
+                template_lines = [line[len('TEMPLATE '):].strip()]
+            elif in_template:
+                if line.strip() == '"""' or line.strip() == "'''":
+                    in_template = False
+                    config['TEMPLATE'] = '\n'.join(template_lines)
+                else:
+                    template_lines.append(line)
+        if in_template:
+            config['TEMPLATE'] = '\n'.join(template_lines)
+    return config
+
 @click.group()
 @click.option('--models-dir', default='models', help='Directory to store models')
 @click.version_option(version='1.0.0', prog_name='easy-edge')
@@ -317,6 +371,228 @@ def remove(ctx, model_name):
     del easy_edge.config["models"][model_name]
     easy_edge.save_config()
     console.print(f"✅ Removed model '{model_name}' from configuration")
+
+@cli.command()
+@click.option('--modelfile', required=True, type=click.Path(exists=True), help='Path to the Modelfile')
+@click.option('--output', required=True, type=click.Path(), help='Path to save the finetuned model (GGUF)')
+@click.option('--name', required=False, type=str, help='Name to register the finetuned model (default: output filename without extension)')
+@click.option('--epochs', required=False, type=int, default=3, help='Number of training epochs (default: 3)')
+@click.option('--batch-size', required=False, type=int, default=2, help='Batch size (default: 2)')
+@click.option('--learning-rate', required=False, type=float, default=2e-5, help='Learning rate (default: 2e-5)')
+@click.pass_context
+def finetune(ctx, modelfile, output, name, epochs, batch_size, learning_rate):
+    """Finetune a model using a Modelfile (Ollama-style, Hugging Face Trainer, GGUF conversion)."""
+    console.print(f"[bold green]Parsing Modelfile:[/bold green] {modelfile}")
+    config = parse_modelfile(modelfile)
+    repo_id = config['FROM']
+    messages = config['MESSAGES']
+    hf_token = config.get('HF_TOKEN')
+    if not repo_id:
+        console.print("[bold red]FROM (repo-id) is required in Modelfile![/bold red]")
+        return
+    if not messages:
+        console.print("[bold red]At least one MESSAGE block is required in Modelfile![/bold red]")
+        return
+    # LoRA/PEFT parameters
+    lora = get_param('lora', False, bool)
+    load_in_4bit = get_param('load_in_4bit', False, bool)
+    load_in_8bit = get_param('load_in_8bit', False, bool)
+    lora_r = get_param('lora_r', 8, int)
+    lora_alpha = get_param('lora_alpha', 32, int)
+    lora_dropout = get_param('lora_dropout', 0.05, float)
+    lora_target_modules = config['PARAMETER'].get('lora_target_modules', 'q_proj,v_proj').split(',')
+    # 1. Download base model and tokenizer
+    console.print(f"[bold blue]Downloading base model and tokenizer from Hugging Face: {repo_id}[/bold blue]")
+    # Device selection
+    device_param = config['PARAMETER'].get('device', None)
+    if device_param:
+        device = device_param.lower()
+        if device not in ['cuda', 'cpu']:
+            console.print(f"[bold yellow]Unknown device '{device}', defaulting to auto-detect.[/bold yellow]")
+            device = None
+    else:
+        device = None
+    if not device:
+        if torch.cuda.is_available():
+            n_gpus = torch.cuda.device_count()
+            device = 'cuda'
+            console.print(f"[bold green]GPU detected! Using CUDA with {n_gpus} GPU(s) for finetuning.[/bold green]")
+        else:
+            device = 'cpu'
+            console.print("[bold yellow]No GPU detected. Training will run on CPU (much slower).[/bold yellow]")
+    else:
+        if device == 'cuda' and not torch.cuda.is_available():
+            console.print("[bold yellow]Requested CUDA but no GPU found. Falling back to CPU.[/bold yellow]")
+            device = 'cpu'
+    # When loading model, move to device if possible
+    try:
+        tokenizer = AutoTokenizer.from_pretrained(repo_id, token=hf_token)
+        model_kwargs = {}
+        if lora:
+            if load_in_4bit:
+                model_kwargs['load_in_4bit'] = True
+                model_kwargs['device_map'] = 'auto'
+            elif load_in_8bit:
+                model_kwargs['load_in_8bit'] = True
+                model_kwargs['device_map'] = 'auto'
+        model = AutoModelForCausalLM.from_pretrained(repo_id, token=hf_token, **model_kwargs)
+        if lora:
+            console.print(f"[bold green]LoRA/PEFT enabled. Wrapping model with LoRA adapters (r={lora_r}, alpha={lora_alpha}, dropout={lora_dropout}) targeting modules: {lora_target_modules}[/bold green]")
+            lora_config = LoraConfig(
+                r=lora_r,
+                lora_alpha=lora_alpha,
+                target_modules=lora_target_modules,
+                lora_dropout=lora_dropout,
+                bias='none',
+                task_type=TaskType.CAUSAL_LM
+            )
+            model = get_peft_model(model, lora_config)
+        model.to(device)
+    except Exception as e:
+        console.print(f"[bold red]Error downloading model/tokenizer or applying LoRA: {e}[/bold red]")
+        return
+    # 2. Create dataset from MESSAGE blocks
+    console.print("[bold blue]Preparing dataset from Modelfile messages...[/bold blue]")
+    data = []
+    for i in range(0, len(messages), 2):
+        if i+1 < len(messages) and messages[i]['role'] == 'user' and messages[i+1]['role'] == 'assistant':
+            data.append({
+                'instruction': messages[i]['content'],
+                'output': messages[i+1]['content']
+            })
+    if not data:
+        console.print("[bold red]No valid user/assistant message pairs found in Modelfile![/bold red]")
+        return
+    # 2b. Format dataset using template
+    template = config.get('TEMPLATE')
+    system_prompt = config.get('SYSTEM')
+    # Default template if not provided
+    if not template:
+        template = """{{ .System }}\nUser: {{ .Prompt }}\nAssistant: {{ .Response }}"""
+    def render_template(system, prompt, response, template):
+        result = template
+        if system is not None:
+            result = result.replace('{{ .System }}', system)
+        else:
+            result = result.replace('{{ .System }}\n', '').replace('{{ .System }}', '')
+        result = result.replace('{{ .Prompt }}', prompt)
+        result = result.replace('{{ .Response }}', response)
+        return result
+    formatted_data = []
+    for ex in data:
+        formatted_data.append({'text': render_template(system_prompt, ex['instruction'], ex['output'], template)})
+    dataset = Dataset.from_list(formatted_data)
+    # 3. Tokenize dataset
+    # Use max_length from PARAMETER if present, else default to 2048
+    try:
+        max_length = int(config['PARAMETER'].get('max_length', 2048))
+    except Exception:
+        max_length = 2048
+    def preprocess(example):
+        return tokenizer(example['text'], truncation=True, padding='max_length', max_length=max_length)
+    tokenized_dataset = dataset.map(preprocess, batched=False)
+    # 4. Training
+    with tempfile.TemporaryDirectory() as tmpdir:
+        output_dir = f"{tmpdir}/finetuned_model"
+        console.print(f"[bold blue]Starting Hugging Face Trainer finetuning...[/bold blue]")
+        # Helper to extract and convert parameters
+        def get_param(key, default, typ):
+            val = config['PARAMETER'].get(key, default)
+            if typ == bool:
+                return str(val).lower() in ['true', '1', 'yes']
+            try:
+                return typ(val)
+            except Exception:
+                return default
+        # Extract parameters
+        max_length = get_param('max_length', 2048, int)
+        learning_rate = get_param('learning_rate', 2e-5, float)
+        epochs = get_param('epochs', epochs, int)
+        batch_size = get_param('batch_size', batch_size, int)
+        weight_decay = get_param('weight_decay', 0.0, float)
+        warmup_steps = get_param('warmup_steps', 0, int)
+        gradient_accumulation_steps = get_param('gradient_accumulation_steps', 1, int)
+        fp16 = get_param('fp16', False, bool)
+        save_steps = get_param('save_steps', 500, int)
+        logging_steps = get_param('logging_steps', 5, int)
+        lr_scheduler_type = config['PARAMETER'].get('lr_scheduler_type', 'linear')
+        eval_steps = get_param('eval_steps', None, int)
+        save_total_limit = get_param('save_total_limit', None, int)
+        seed = get_param('seed', None, int)
+        training_args = TrainingArguments(
+            output_dir=output_dir,
+            overwrite_output_dir=True,
+            num_train_epochs=epochs,
+            per_device_train_batch_size=batch_size,
+            learning_rate=learning_rate,
+            weight_decay=weight_decay,
+            warmup_steps=warmup_steps,
+            gradient_accumulation_steps=gradient_accumulation_steps,
+            fp16=fp16,
+            save_strategy='steps',
+            save_steps=save_steps,
+            logging_steps=logging_steps,
+            lr_scheduler_type=lr_scheduler_type,
+            report_to=[],
+            seed=seed if seed is not None else 42,
+            eval_steps=eval_steps,
+            save_total_limit=save_total_limit,
+        )
+        data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
+        trainer = Trainer(
+            model=model,
+            args=training_args,
+            train_dataset=tokenized_dataset,
+            data_collator=data_collator,
+            # device_map is handled by model.to(device) above
+        )
+        try:
+            trainer.train()
+            trainer.save_model(output_dir)
+        except Exception as e:
+            console.print(f"[bold red]Error during training: {e}[/bold red]")
+            return
+        # 5. Convert to GGUF
+        console.print(f"[bold blue]Converting to GGUF using llama.cpp...[/bold blue]")
+        gguf_path = Path(output)
+        convert_script = shutil.which('convert.py') or './llama.cpp/convert.py'
+        if not os.path.exists(convert_script):
+            console.print(f"[bold red]llama.cpp convert.py not found! Please ensure it is installed and in your PATH.[/bold red]")
+            return
+        try:
+            subprocess.run([
+                'python3', convert_script,
+                '--in', output_dir,
+                '--out', str(gguf_path)
+            ], check=True)
+        except Exception as e:
+            console.print(f"[bold red]Error converting to GGUF: {e}[/bold red]")
+            return
+        # 6. Move GGUF to models/ and register
+        models_dir = ctx.obj['easy_edge'].models_dir
+        dest_path = models_dir / gguf_path.name
+        shutil.move(str(gguf_path), str(dest_path))
+        output_path = dest_path
+        console.print(f"[bold blue]Moved finetuned model to {output_path}[/bold blue]")
+        # Register in config.json
+        config_file = models_dir / 'config.json'
+        if config_file.exists():
+            with open(config_file, 'r') as cf:
+                config_data = json.load(cf)
+        else:
+            config_data = {"models": {}, "default_model": None, "settings": {}}
+        model_name = name if name else output_path.stem
+        file_size = os.path.getsize(output_path)
+        config_data["models"][model_name] = {
+            "filename": output_path.name,
+            "repo_id": repo_id,
+            "original_filename": output_path.name,
+            "size": file_size
+        }
+        with open(config_file, 'w') as cf:
+            json.dump(config_data, cf, indent=2)
+        console.print(f"[bold cyan]Model '{model_name}' registered in {config_file}![/bold cyan]")
+        console.print(f"[bold green]Finetuning complete! You can now run your model with:[/bold green] easy-edge run {model_name} --prompt 'Hello!'")
 
 if __name__ == '__main__':
     cli() 

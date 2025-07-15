@@ -1,0 +1,40 @@
+# Example Modelfile for Easy Edge finetuning
+
+HF_TOKEN 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
+FROM google/gemma-3-1b-it
+TEMPLATE """
+<start_of_turn>system
+{{ .System }}<end_of_turn>
+<start_of_turn>user
+{{ .Prompt }}<end_of_turn>
+<start_of_turn>model
+{{ .Response }}<end_of_turn>
+"""
+
+PARAMETER device cpu
+PARAMETER distributed true
+PARAMETER max_length 64
+PARAMETER learning_rate 3e-5
+PARAMETER epochs 4
+PARAMETER batch_size 1
+PARAMETER weight_decay 0.01
+PARAMETER warmup_steps 100
+PARAMETER gradient_accumulation_steps 2
+PARAMETER fp16 false
+PARAMETER save_steps 100
+PARAMETER logging_steps 10
+PARAMETER lr_scheduler_type linear
+PARAMETER eval_steps 50
+PARAMETER save_total_limit 2
+PARAMETER seed 42
+
+PARAMETER lora true
+PARAMETER load_in_4bit true
+PARAMETER lora_r 8
+PARAMETER lora_alpha 32
+PARAMETER lora_dropout 0.05
+PARAMETER lora_target_modules q_proj,v_proj
+
+SYSTEM You are a helpful assistant.
+MESSAGE user How can I reset my password?
+MESSAGE assistant To reset your password, click on 'Forgot Password' at the login screen and follow the instructions. 

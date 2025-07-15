@@ -1,5 +1,12 @@
 {
-  "models": {},
+  "models": {
+    "gemma-3-1b-it-qat-q4_0-gguf": {
+      "filename": "gemma-3-1b-it-qat-q4_0-gguf.gguf",
+      "repo_id": "google/gemma-3-1b-it-qat-q4_0-gguf",
+      "original_filename": "gemma-3-1b-it-q4_0.gguf",
+      "size": 1003541152
+    }
+  },
   "default_model": null,
   "settings": {
     "max_tokens": 2048,
