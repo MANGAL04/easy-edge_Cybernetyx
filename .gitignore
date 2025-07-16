@@ -4,3 +4,5 @@ models/config.json
 /models
 /models
 /test_env
+/build
+/easy_edge.egg-info
