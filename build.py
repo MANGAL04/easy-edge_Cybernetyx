@@ -116,7 +116,7 @@ def create_linux_package():
 
 def main():
     """Main build function"""
-    print("🚀 Building Easy Edge...")
+    print("Building Easy Edge...")
     
     # Install PyInstaller
     install_pyinstaller()
