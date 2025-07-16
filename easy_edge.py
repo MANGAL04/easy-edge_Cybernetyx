@@ -581,16 +581,9 @@ def finetune(ctx, modelfile, output, name, epochs, batch_size, learning_rate):
         # Remove GGUF conversion and quantization steps
         # After training and saving merged model, print instructions for user
         console.print(f"[bold green]Finetuning complete! Your merged model is saved at: {output_dir}")
-        console.print("[bold yellow]To convert your model to GGUF and quantize, use the appropriate tools (e.g., convert.py and llama-quantize) manually.[/bold yellow]")
-        # Register only the merged model in config.json if desired (optional)
-        # config_data["models"][model_name] = {
-        #     "filename": output_dir,
-        #     "repo_id": repo_id,
-        #     "original_filename": output_dir,
-        #     "size": 0
-        # }
-        # with open(config_file, 'w') as cf:
-        #     json.dump(config_data, cf, indent=2)
+        console.print("[bold yellow]To use your model with llama.cpp, convert it to GGUF using convert_hf_to_gguf.py. Example:")
+        console.print(f"python3 convert_hf_to_gguf.py --in {output_dir} --out <your-model>.gguf")
+        console.print("[bold yellow]Then upload the GGUF file to your Hugging Face repo for easy download and use with llama.cpp![/bold yellow]")
         return
 
 if __name__ == '__main__':
