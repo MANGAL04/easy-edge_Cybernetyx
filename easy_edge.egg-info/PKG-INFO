@@ -1,3 +1,23 @@
+Metadata-Version: 2.1
+Name: easy-edge
+Version: 0.1.0
+Summary: A simple Ollama-like tool for running LLMs locally
+Home-page: https://github.com/criminact/easy-edge
+Author: Easy Edge Team
+License: UNKNOWN
+Project-URL: Source, https://github.com/criminact/easy-edge
+Project-URL: Tracker, https://github.com/criminact/easy-edge/issues
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Intended Audience :: End Users/Desktop
+Classifier: Environment :: Console
+Classifier: Topic :: Software Development :: Libraries :: Application Frameworks
+Classifier: Topic :: Utilities
+Requires-Python: >=3.9.6
+Description-Content-Type: text/markdown
+
 # Easy Edge
 
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
@@ -126,3 +146,4 @@ MIT License - see LICENSE file for details.
 - [llama.cpp](https://github.com/ggerganov/llama.cpp) - The underlying inference engine
 - [Ollama](https://ollama.ai/) - Inspiration for the tool design
 - [Hugging Face](https://huggingface.co/) - Model hosting and distribution 
+
