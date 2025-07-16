@@ -6,7 +6,7 @@ class EasyEdge < Formula
   license "MIT"
   head "https://github.com/criminact/easy-edge.git", branch: "main"
 
-  depends_on "python@3.9"
+  depends_on "python@3.11"
 
   def install
     # Create models directory

@@ -5,7 +5,7 @@ class EasyEdge < Formula
   sha256 "YOUR_SHA256_HERE"
   license "MIT"
 
-  depends_on "python@3.9"
+  depends_on "python@3.11"
 
   def install
     system "pip3", "install", "-r", "requirements.txt"

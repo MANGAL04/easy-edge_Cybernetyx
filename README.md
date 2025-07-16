@@ -2,7 +2,7 @@
 
 [![CI/CD](https://github.com/criminact/easy-edge/workflows/CI%2FCD%20Pipeline/badge.svg)](https://github.com/criminact/easy-edge/actions/workflows/ci-cd.yml)
 [![Release](https://github.com/criminact/easy-edge/workflows/Release/badge.svg)](https://github.com/criminact/easy-edge/actions/workflows/release.yml)
-[![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 A simple Ollama-like tool for running Large Language Models (LLMs) locally using llama.cpp under the hood.
@@ -126,7 +126,7 @@ The tool stores configuration in `models/config.json`. You can modify settings l
 
 ## Requirements
 
-- Python 3.8+
+- Python 3.11+
 - 8GB+ RAM (for 7B models)
 - 16GB+ RAM (for 13B models)
 - 4GB+ free disk space per model
@@ -169,7 +169,7 @@ pip install llama-cpp-python --force-reinstall --index-url=https://jllllll.githu
 ## Building from Source
 
 ### Prerequisites
-- Python 3.8+
+- Python 3.11+
 - PyInstaller (for creating executables)
 
 ### Build Steps

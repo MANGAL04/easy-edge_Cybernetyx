@@ -19,7 +19,7 @@ The CI/CD pipeline consists of two main workflows:
 - Manual release creation
 
 **Jobs:**
-1. **Test** - Runs tests on Python version (3.9)
+1. **Test** - Runs tests on Python version (3.11)
 2. **Build Linux** - Creates Linux executable
 3. **Build macOS** - Creates macOS executable  
 4. **Build Windows** - Creates Windows executable

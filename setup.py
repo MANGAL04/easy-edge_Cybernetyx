@@ -19,5 +19,5 @@ setup(
             "easy-edge=easy_edge:cli",
         ],
     },
-    python_requires=">=3.8",
+    python_requires=">=3.11",
 ) 
