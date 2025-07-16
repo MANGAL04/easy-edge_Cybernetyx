@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="easy-edge",
-    version="0.1.0",
+    version="1.0.1",
     description="A simple Ollama-like tool for running LLMs locally",
     author="Easy Edge Team",
     py_modules=["easy_edge"],
