@@ -1,10 +1,10 @@
 {
   "models": {
-    "gemma-3-1b-it-qat-q4_0-gguf": {
-      "filename": "gemma-3-1b-it-qat-q4_0-gguf.gguf",
-      "repo_id": "google/gemma-3-1b-it-qat-q4_0-gguf",
-      "original_filename": "gemma-3-1b-it-q4_0.gguf",
-      "size": 1003541152
+    "Llama-3.2-1B-Instruct-GGUF": {
+      "filename": "Llama-3.2-1B-Instruct-GGUF.gguf",
+      "repo_id": "unsloth/Llama-3.2-1B-Instruct-GGUF",
+      "original_filename": "Llama-3.2-1B-Instruct-Q4_0.gguf",
+      "size": 773025824
     }
   },
   "default_model": null,

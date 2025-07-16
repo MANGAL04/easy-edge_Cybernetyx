@@ -25,6 +25,10 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments,
 import torch
 from peft import LoraConfig, get_peft_model, TaskType
 import bitsandbytes as bnb
+import platform
+import sys
+import urllib.request
+import zipfile
 
 # Try to import llama-cpp-python
 try:
@@ -384,15 +388,21 @@ def finetune(ctx, modelfile, output, name, epochs, batch_size, learning_rate):
     """Finetune a model using a Modelfile (Ollama-style, Hugging Face Trainer, GGUF conversion)."""
     console.print(f"[bold green]Parsing Modelfile:[/bold green] {modelfile}")
     config = parse_modelfile(modelfile)
+    # Helper to extract and convert parameters (must be defined before use)
+    def get_param(key, default, typ):
+        val = config['PARAMETER'].get(key, default)
+        if typ == bool:
+            return str(val).lower() in ['true', '1', 'yes']
+        try:
+            return typ(val)
+        except Exception:
+            return default
+    models_dir = ctx.obj['easy_edge'].models_dir
+    name = name if name else None
+    model_name = name if name else Path(output).stem
     repo_id = config['FROM']
     messages = config['MESSAGES']
     hf_token = config.get('HF_TOKEN')
-    if not repo_id:
-        console.print("[bold red]FROM (repo-id) is required in Modelfile![/bold red]")
-        return
-    if not messages:
-        console.print("[bold red]At least one MESSAGE block is required in Modelfile![/bold red]")
-        return
     # LoRA/PEFT parameters
     lora = get_param('lora', False, bool)
     load_in_4bit = get_param('load_in_4bit', False, bool)
@@ -427,6 +437,9 @@ def finetune(ctx, modelfile, output, name, epochs, batch_size, learning_rate):
     # When loading model, move to device if possible
     try:
         tokenizer = AutoTokenizer.from_pretrained(repo_id, token=hf_token)
+        if tokenizer.pad_token is None:
+            tokenizer.pad_token = tokenizer.eos_token
+            console.print("[bold yellow]No pad_token found in tokenizer. Setting pad_token = eos_token.[/bold yellow]")
         model_kwargs = {}
         if lora:
             if load_in_4bit:
@@ -458,29 +471,39 @@ def finetune(ctx, modelfile, output, name, epochs, batch_size, learning_rate):
         if i+1 < len(messages) and messages[i]['role'] == 'user' and messages[i+1]['role'] == 'assistant':
             data.append({
                 'instruction': messages[i]['content'],
-                'output': messages[i+1]['content']
+                'output': messages[i+1]['content'],
+                'user_message': messages[i],
+                'assistant_message': messages[i+1]
             })
     if not data:
         console.print("[bold red]No valid user/assistant message pairs found in Modelfile![/bold red]")
         return
-    # 2b. Format dataset using template
-    template = config.get('TEMPLATE')
-    system_prompt = config.get('SYSTEM')
-    # Default template if not provided
-    if not template:
-        template = """{{ .System }}\nUser: {{ .Prompt }}\nAssistant: {{ .Response }}"""
-    def render_template(system, prompt, response, template):
-        result = template
-        if system is not None:
-            result = result.replace('{{ .System }}', system)
-        else:
-            result = result.replace('{{ .System }}\n', '').replace('{{ .System }}', '')
-        result = result.replace('{{ .Prompt }}', prompt)
-        result = result.replace('{{ .Response }}', response)
-        return result
+    # 2b. Format dataset using tokenizer.apply_chat_template if available, else use template
     formatted_data = []
-    for ex in data:
-        formatted_data.append({'text': render_template(system_prompt, ex['instruction'], ex['output'], template)})
+    if hasattr(tokenizer, 'apply_chat_template'):
+        console.print("[bold blue]Using tokenizer.apply_chat_template for prompt formatting...[/bold blue]")
+        for ex in data:
+            chat_messages = [
+                {"role": "user", "content": ex['instruction']},
+                {"role": "assistant", "content": ex['output']}
+            ]
+            formatted_data.append({'text': tokenizer.apply_chat_template(chat_messages, tokenize=False)})
+    else:
+        template = config.get('TEMPLATE')
+        system_prompt = config.get('SYSTEM')
+        if not template:
+            template = """{{ .System }}\nUser: {{ .Prompt }}\nAssistant: {{ .Response }}"""
+        def render_template(system, prompt, response, template):
+            result = template
+            if system is not None:
+                result = result.replace('{{ .System }}', system)
+            else:
+                result = result.replace('{{ .System }}\n', '').replace('{{ .System }}', '')
+            result = result.replace('{{ .Prompt }}', prompt)
+            result = result.replace('{{ .Response }}', response)
+            return result
+        for ex in data:
+            formatted_data.append({'text': render_template(system_prompt, ex['instruction'], ex['output'], template)})
     dataset = Dataset.from_list(formatted_data)
     # 3. Tokenize dataset
     # Use max_length from PARAMETER if present, else default to 2048
@@ -495,15 +518,6 @@ def finetune(ctx, modelfile, output, name, epochs, batch_size, learning_rate):
     with tempfile.TemporaryDirectory() as tmpdir:
         output_dir = f"{tmpdir}/finetuned_model"
         console.print(f"[bold blue]Starting Hugging Face Trainer finetuning...[/bold blue]")
-        # Helper to extract and convert parameters
-        def get_param(key, default, typ):
-            val = config['PARAMETER'].get(key, default)
-            if typ == bool:
-                return str(val).lower() in ['true', '1', 'yes']
-            try:
-                return typ(val)
-            except Exception:
-                return default
         # Extract parameters
         max_length = get_param('max_length', 2048, int)
         learning_rate = get_param('learning_rate', 2e-5, float)
@@ -549,50 +563,35 @@ def finetune(ctx, modelfile, output, name, epochs, batch_size, learning_rate):
         try:
             trainer.train()
             trainer.save_model(output_dir)
+            if lora:
+                console.print("[bold blue]Saving LoRA adapter weights in models/ directory...[/bold blue]")
+                adapter_dir = models_dir / f"{model_name}-lora-adapter"
+                model.save_pretrained(str(adapter_dir))
+                # Do NOT register adapter in config.json
+                console.print("[bold blue]Merging LoRA adapters into base model before GGUF conversion...[/bold blue]")
+                model = model.merge_and_unload()
+                merged_dir = models_dir / f"{model_name}-merged"
+                model.save_pretrained(str(merged_dir))
+                # Do NOT register merged model in config.json
+                # Use merged_dir for GGUF conversion
+                output_dir = str(merged_dir)
         except Exception as e:
             console.print(f"[bold red]Error during training: {e}[/bold red]")
             return
-        # 5. Convert to GGUF
-        console.print(f"[bold blue]Converting to GGUF using llama.cpp...[/bold blue]")
-        gguf_path = Path(output)
-        convert_script = shutil.which('convert.py') or './llama.cpp/convert.py'
-        if not os.path.exists(convert_script):
-            console.print(f"[bold red]llama.cpp convert.py not found! Please ensure it is installed and in your PATH.[/bold red]")
-            return
-        try:
-            subprocess.run([
-                'python3', convert_script,
-                '--in', output_dir,
-                '--out', str(gguf_path)
-            ], check=True)
-        except Exception as e:
-            console.print(f"[bold red]Error converting to GGUF: {e}[/bold red]")
-            return
-        # 6. Move GGUF to models/ and register
-        models_dir = ctx.obj['easy_edge'].models_dir
-        dest_path = models_dir / gguf_path.name
-        shutil.move(str(gguf_path), str(dest_path))
-        output_path = dest_path
-        console.print(f"[bold blue]Moved finetuned model to {output_path}[/bold blue]")
-        # Register in config.json
-        config_file = models_dir / 'config.json'
-        if config_file.exists():
-            with open(config_file, 'r') as cf:
-                config_data = json.load(cf)
-        else:
-            config_data = {"models": {}, "default_model": None, "settings": {}}
-        model_name = name if name else output_path.stem
-        file_size = os.path.getsize(output_path)
-        config_data["models"][model_name] = {
-            "filename": output_path.name,
-            "repo_id": repo_id,
-            "original_filename": output_path.name,
-            "size": file_size
-        }
-        with open(config_file, 'w') as cf:
-            json.dump(config_data, cf, indent=2)
-        console.print(f"[bold cyan]Model '{model_name}' registered in {config_file}![/bold cyan]")
-        console.print(f"[bold green]Finetuning complete! You can now run your model with:[/bold green] easy-edge run {model_name} --prompt 'Hello!'")
+        # Remove GGUF conversion and quantization steps
+        # After training and saving merged model, print instructions for user
+        console.print(f"[bold green]Finetuning complete! Your merged model is saved at: {output_dir}")
+        console.print("[bold yellow]To convert your model to GGUF and quantize, use the appropriate tools (e.g., convert.py and llama-quantize) manually.[/bold yellow]")
+        # Register only the merged model in config.json if desired (optional)
+        # config_data["models"][model_name] = {
+        #     "filename": output_dir,
+        #     "repo_id": repo_id,
+        #     "original_filename": output_dir,
+        #     "size": 0
+        # }
+        # with open(config_file, 'w') as cf:
+        #     json.dump(config_data, cf, indent=2)
+        return
 
 if __name__ == '__main__':
     cli() 
