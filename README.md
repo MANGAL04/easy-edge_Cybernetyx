@@ -110,6 +110,66 @@ pip uninstall llama-cpp-python
 pip install llama-cpp-python --force-reinstall --index-url=https://jllllll.github.io/llama-cpp-python-cuBLAS-wheels/AVX2/cu118
 ```
 
+## Finetuning Your Own Model
+
+Easy Edge supports finetuning LLMs using a Modelfile (Ollama-style) and Hugging Face Trainer. This allows you to create custom models for your own data and use them locally.
+
+### 1. Create a Modelfile
+
+A Modelfile describes the base model, training parameters, and example messages for finetuning. Example:
+
+```
+HF_TOKEN <your_huggingface_token>
+FROM meta-llama/Llama-3.2-1B-Instruct
+
+PARAMETER device cpu
+PARAMETER max_length 64
+PARAMETER learning_rate 3e-5
+PARAMETER epochs 4
+PARAMETER batch_size 1
+PARAMETER lora true
+PARAMETER lora_r 8
+PARAMETER lora_alpha 32
+PARAMETER lora_dropout 0.05
+PARAMETER lora_target_modules q_proj,v_proj
+
+SYSTEM You are a helpful assistant.
+MESSAGE user How can I reset my password?
+MESSAGE assistant To reset your password, click on 'Forgot Password' at the login screen and follow the instructions.
+```
+
+- `HF_TOKEN` is your Hugging Face access token (required for private models).
+- `FROM` specifies the base model to finetune.
+- `PARAMETER` lines set training options (see above for examples).
+- `SYSTEM` and `MESSAGE` blocks provide training data.
+
+### 2. Run Finetuning
+
+Use the `finetune` command to start training:
+
+```bash
+easy-edge finetune --modelfile Modelfile --output my-finetuned-model --epochs 4 --batch-size 1 --learning-rate 3e-5
+```
+
+- `--modelfile` is the path to your Modelfile.
+- `--output` is where the trained model will be saved.
+- You can override epochs, batch size, and learning rate on the command line.
+
+### 3. Convert to GGUF (for llama.cpp)
+
+After training, you will see instructions to convert your model to GGUF format for use with llama.cpp:
+
+```bash
+python3 convert_hf_to_gguf.py --in my-finetuned-model --out my-finetuned-model.gguf
+```
+
+Upload your GGUF file to Hugging Face or use it locally with Easy Edge.
+
+### Notes
+- Finetuning is resource-intensive. For best results, use a machine with a GPU.
+- LoRA/PEFT is supported for efficient finetuning.
+- See the example Modelfile in the repository for more options.
+
 ## Contributing
 
 1. Fork the repository
