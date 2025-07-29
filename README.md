@@ -68,6 +68,55 @@ easy-edge list
 easy-edge remove gemma-3-1b-it-qat-q4_0-gguf
 ```
 
+### Benchmark Model Performance
+
+Measure model speed (tokens/sec, latency) and memory usage:
+
+**Single prompt benchmark:**
+```bash
+easy-edge benchmark --prompt "Hello, world!" --repeat 10 --model <model_name>
+```
+
+**Benchmark with prompt file:**
+```bash
+easy-edge benchmark --promptfile prompts.txt --model <model_name>
+```
+
+**Command Options:**
+- `--prompt`: Single prompt to benchmark
+- `--promptfile`: Path to file with prompts (Modelfile MESSAGE format)
+- `--repeat`: Number of times to repeat the benchmark (default: 1)
+- `--model`: Model name to benchmark (required)
+
+**Prompt File Format:**
+```
+MESSAGE user How can I reset my password?
+MESSAGE user How are you?
+MESSAGE user What is the capital of France?
+```
+
+**Measured Metrics:**
+- Total tokens generated
+- Average time to first token (seconds)
+- Tokens per second (throughput)
+- Throughput speed (requests per second)
+- Peak memory usage (MB)
+
+
+**Example Output:**
+```
+                     Benchmark Results                      
+
+  Metric                        Value                      
+ ──────────────────────────────────────────────────────────
+  Model                         Llama-3.2-1B-Instruct-GGUF
+  Total tokens                  346
+  Avg time to first token (s)   1.117
+  Tokens/sec                    30.97
+  Throughput speed (req/s)      0.90
+  Peak memory (MB)              1898.21
+```
+
 ## Configuration
 
 The tool stores configuration in `models/config.json`. You can modify settings like:

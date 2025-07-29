@@ -1,0 +1,5 @@
+MESSAGE user How can I reset my password?
+MESSAGE user How are you?
+MESSAGE user What is the capital of France?
+MESSAGE user Explain quantum computing in simple terms.
+MESSAGE user Write a short poem about technology. 

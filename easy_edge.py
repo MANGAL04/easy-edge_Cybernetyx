@@ -664,23 +664,21 @@ def benchmark(ctx, prompt, promptfile, repeat, model_name):
             first_token_times.append(latency)
     # Results
     total_runs = repeat * len(prompts)
+    total_time = sum(all_latencies)
     avg_latency = sum(all_latencies) / total_runs if total_runs else 0
     avg_first_token = sum(first_token_times) / total_runs if total_runs else 0
-    tokens_per_sec = total_tokens / sum(all_latencies) if sum(all_latencies) > 0 else 0
+    tokens_per_sec = total_tokens / total_time if total_time > 0 else 0
+    throughput_speed = total_runs / total_time if total_time > 0 else 0  # requests per second
     import platform
     table = Table(title="Benchmark Results", box=box.SIMPLE)
     table.add_column("Metric", style="bold")
     table.add_column("Value")
     table.add_row("Model", model_name)
-    table.add_row("Prompt count", str(len(prompts)))
-    table.add_row("Repeat", str(repeat))
-    table.add_row("Total runs", str(total_runs))
     table.add_row("Total tokens", str(total_tokens))
-    table.add_row("Avg latency (s)", f"{avg_latency:.3f}")
     table.add_row("Avg time to first token (s)", f"{avg_first_token:.3f}")
     table.add_row("Tokens/sec", f"{tokens_per_sec:.2f}")
+    table.add_row("Throughput speed (req/s)", f"{throughput_speed:.2f}")
     table.add_row("Peak memory (MB)", f"{peak_mem / (1024*1024):.2f}")
-    # table.add_row("Platform", platform.platform())
     console.print(table)
 
 if __name__ == '__main__':
