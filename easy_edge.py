@@ -29,6 +29,8 @@ import platform
 import sys
 import urllib.request
 import zipfile
+import psutil
+import time
 
 # Try to import llama-cpp-python
 try:
@@ -585,6 +587,101 @@ def finetune(ctx, modelfile, output, name, epochs, batch_size, learning_rate):
         console.print(f"python3 convert_hf_to_gguf.py --in {output_dir} --out <your-model>.gguf")
         console.print("[bold yellow]Then upload the GGUF file to your Hugging Face repo for easy download and use with llama.cpp![/bold yellow]")
         return
+
+@cli.command()
+@click.option('--prompt', '-p', help='Prompt to send to the model')
+@click.option('--promptfile', type=click.Path(exists=True), help='Path to a file with prompts (Modelfile MESSAGE format)')
+@click.option('--repeat', default=1, type=int, help='Number of times to repeat the benchmark')
+@click.option('--model', 'model_name', required=True, help='Model name to benchmark')
+@click.pass_context
+def benchmark(ctx, prompt, promptfile, repeat, model_name):
+    """Benchmark model speed (tokens/sec, latency) and memory usage."""
+    import re
+    from rich.table import Table
+    from rich import box
+
+    easy_edge = ctx.obj['easy_edge']
+    model_path = easy_edge.get_model_path(model_name)
+    if not model_path:
+        console.print(f"❌ Model '{model_name}' not found. Use 'easy-edge pull <model>' to download it.")
+        return
+
+    # Load prompts
+    prompts = []
+    if promptfile:
+        with open(promptfile, 'r', encoding='utf-8') as f:
+            for line in f:
+                m = re.match(r'^MESSAGE (\w+) (.+)', line.strip())
+                if m and m.group(1).lower() == 'user':
+                    prompts.append(m.group(2))
+        if not prompts:
+            console.print(f"[bold red]No valid user MESSAGE lines found in {promptfile}![/bold red]")
+            return
+    elif prompt:
+        prompts = [prompt]
+    else:
+        console.print("[bold red]You must provide either --prompt or --promptfile.[/bold red]")
+        return
+
+    # Prepare model
+    console.print(f"[bold green]Loading model {model_name}...[/bold green]")
+    llm = Llama(
+        model_path=str(model_path),
+        n_ctx=2048,
+        n_threads=os.cpu_count()
+    )
+
+    # Benchmark loop
+    total_tokens = 0
+    total_time = 0.0
+    first_token_times = []
+    all_latencies = []
+    peak_mem = 0
+    for i in range(repeat):
+        for prompt_text in prompts:
+            process = psutil.Process(os.getpid())
+            mem_before = process.memory_info().rss
+            start_time = time.perf_counter()
+            # If Llama supports streaming, use it for time to first token
+            # Otherwise, just measure total time
+            response = llm(
+                prompt_text,
+                max_tokens=easy_edge.config["settings"]["max_tokens"],
+                temperature=easy_edge.config["settings"]["temperature"],
+                top_p=easy_edge.config["settings"]["top_p"],
+                stop=["User:", "\n\n"]
+            )
+            end_time = time.perf_counter()
+            mem_after = process.memory_info().rss
+            peak_mem = max(peak_mem, mem_after)
+            latency = end_time - start_time
+            all_latencies.append(latency)
+            usage = response.get("usage", {})
+            prompt_tokens = usage.get("prompt_tokens", 0)
+            completion_tokens = usage.get("completion_tokens", 0)
+            total_tokens += prompt_tokens + completion_tokens
+            # For now, time to first token = total latency (no streaming)
+            first_token_times.append(latency)
+    # Results
+    total_runs = repeat * len(prompts)
+    avg_latency = sum(all_latencies) / total_runs if total_runs else 0
+    avg_first_token = sum(first_token_times) / total_runs if total_runs else 0
+    tokens_per_sec = total_tokens / sum(all_latencies) if sum(all_latencies) > 0 else 0
+    import platform
+    table = Table(title="Benchmark Results", box=box.SIMPLE)
+    table.add_column("Metric", style="bold")
+    table.add_column("Value")
+    table.add_row("Model", model_name)
+    table.add_row("Prompt count", str(len(prompts)))
+    table.add_row("Repeat", str(repeat))
+    table.add_row("Total runs", str(total_runs))
+    table.add_row("Total tokens", str(total_tokens))
+    table.add_row("Avg latency (s)", f"{avg_latency:.3f}")
+    table.add_row("Avg time to first token (s)", f"{avg_first_token:.3f}")
+    table.add_row("Tokens/sec", f"{tokens_per_sec:.2f}")
+    table.add_row("Peak memory (MB)", f"{peak_mem / (1024*1024):.2f}")
+    # table.add_row("Platform", platform.platform())
+    console.print(table)
 
 if __name__ == '__main__':
     cli() 
