@@ -669,7 +669,6 @@ def benchmark(ctx, prompt, promptfile, repeat, model_name):
     avg_first_token = sum(first_token_times) / total_runs if total_runs else 0
     tokens_per_sec = total_tokens / total_time if total_time > 0 else 0
     throughput_speed = total_runs / total_time if total_time > 0 else 0  # requests per second
-    import platform
     table = Table(title="Benchmark Results", box=box.SIMPLE)
     table.add_column("Metric", style="bold")
     table.add_column("Value")
