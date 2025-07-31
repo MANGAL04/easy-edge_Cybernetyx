@@ -599,14 +599,13 @@ def finetune(ctx, modelfile, output, name, epochs, batch_size, learning_rate):
 def benchmark(ctx, prompt, promptfile, repeat, model_name):
     """Benchmark model speed (tokens/sec, latency) and memory usage."""
 
-
     easy_edge = ctx.obj['easy_edge']
     model_path = easy_edge.get_model_path(model_name)
     if not model_path:
         console.print(f"❌ Model '{model_name}' not found. Use 'easy-edge pull <model>' to download it.")
         return
 
-    # Load prompts
+    # Loading the prompts
     prompts = []
     if promptfile:
         with open(promptfile, 'r', encoding='utf-8') as f:
@@ -623,7 +622,7 @@ def benchmark(ctx, prompt, promptfile, repeat, model_name):
         console.print("[bold red]You must provide either --prompt or --promptfile.[/bold red]")
         return
 
-    # Prepare model
+    # Preparing the model
     console.print(f"[bold green]Loading model {model_name}...[/bold green]")
     llm = Llama(
         model_path=str(model_path),
@@ -676,7 +675,7 @@ def benchmark(ctx, prompt, promptfile, repeat, model_name):
     avg_latency = sum(all_latencies) / total_runs if total_runs else 0
     avg_first_token = sum(first_token_times) / total_runs if total_runs else 0
     tokens_per_sec = total_tokens / total_time if total_time > 0 else 0
-    throughput_speed = total_runs / total_time if total_time > 0 else 0  # requests per second
+    throughput_speed = completion_tokens_count / total_time if total_time > 0 else 0  # requests per second
     table = Table(title="Benchmark Results", box=box.SIMPLE)
     table.add_column("Metric", style="bold")
     table.add_column("Value")
