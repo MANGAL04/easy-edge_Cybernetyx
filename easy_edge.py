@@ -31,6 +31,8 @@ import urllib.request
 import zipfile
 import psutil
 import time
+from rich.table import Table
+from rich import box
 
 # Try to import llama-cpp-python
 try:
@@ -596,9 +598,6 @@ def finetune(ctx, modelfile, output, name, epochs, batch_size, learning_rate):
 @click.pass_context
 def benchmark(ctx, prompt, promptfile, repeat, model_name):
     """Benchmark model speed (tokens/sec, latency) and memory usage."""
-    import re
-    from rich.table import Table
-    from rich import box
 
     easy_edge = ctx.obj['easy_edge']
     model_path = easy_edge.get_model_path(model_name)
