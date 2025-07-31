@@ -31,6 +31,8 @@ import urllib.request
 import zipfile
 import psutil
 import time
+from rich.table import Table
+from rich import box
 
 # Try to import llama-cpp-python
 try:
@@ -596,9 +598,7 @@ def finetune(ctx, modelfile, output, name, epochs, batch_size, learning_rate):
 @click.pass_context
 def benchmark(ctx, prompt, promptfile, repeat, model_name):
     """Benchmark model speed (tokens/sec, latency) and memory usage."""
-    import re
-    from rich.table import Table
-    from rich import box
+
 
     easy_edge = ctx.obj['easy_edge']
     model_path = easy_edge.get_model_path(model_name)
@@ -637,13 +637,14 @@ def benchmark(ctx, prompt, promptfile, repeat, model_name):
     first_token_times = []
     all_latencies = []
     peak_mem = 0
+    completion_tokens_count = 0
+
     for i in range(repeat):
+        print("Iteration", i+1)
         for prompt_text in prompts:
             process = psutil.Process(os.getpid())
             mem_before = process.memory_info().rss
             start_time = time.perf_counter()
-            # If Llama supports streaming, use it for time to first token
-            # Otherwise, just measure total time
             response = llm(
                 prompt_text,
                 max_tokens=easy_edge.config["settings"]["max_tokens"],
@@ -660,21 +661,26 @@ def benchmark(ctx, prompt, promptfile, repeat, model_name):
             prompt_tokens = usage.get("prompt_tokens", 0)
             completion_tokens = usage.get("completion_tokens", 0)
             total_tokens += prompt_tokens + completion_tokens
-            # For now, time to first token = total latency (no streaming)
             first_token_times.append(latency)
-    # Results
+            completion_tokens_count += completion_tokens
+            throughput_speed = completion_tokens / latency if latency > 0 else 0
+
+            print("Total Tokens:", prompt_tokens + completion_tokens)
+            print("Prompt Tokens:", prompt_tokens)
+            print(f"Throughput speed: {throughput_speed:.2f} tokens/s")
+            print(f"Peak memory: {peak_mem / (1024*1024):.2f} MB")
+
+            print("-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------")
     total_runs = repeat * len(prompts)
     total_time = sum(all_latencies)
     avg_latency = sum(all_latencies) / total_runs if total_runs else 0
     avg_first_token = sum(first_token_times) / total_runs if total_runs else 0
     tokens_per_sec = total_tokens / total_time if total_time > 0 else 0
-    throughput_speed = total_runs / total_time if total_time > 0 else 0  # requests per second
-    import platform
+    throughput_speed = completion_tokens_count / total_time if total_time > 0 else 0  # completion_tokens per second
     table = Table(title="Benchmark Results", box=box.SIMPLE)
     table.add_column("Metric", style="bold")
     table.add_column("Value")
     table.add_row("Model", model_name)
-    table.add_row("Total tokens", str(total_tokens))
     table.add_row("Avg time to first token (s)", f"{avg_first_token:.3f}")
     table.add_row("Tokens/sec", f"{tokens_per_sec:.2f}")
     table.add_row("Throughput speed (req/s)", f"{throughput_speed:.2f}")

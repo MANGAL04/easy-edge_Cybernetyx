@@ -79,7 +79,7 @@ easy-edge benchmark --prompt "Hello, world!" --repeat 10 --model <model_name>
 
 **Benchmark with prompt file:**
 ```bash
-easy-edge benchmark --promptfile prompts.txt --model <model_name>
+easy-edge benchmark --promptfile benchmark_prompts.txt --model <model_name>
 ```
 
 **Command Options:**
@@ -89,11 +89,29 @@ easy-edge benchmark --promptfile prompts.txt --model <model_name>
 - `--model`: Model name to benchmark (required)
 
 **Prompt File Format:**
+Create a text file (e.g., `benchmark_prompts.txt`) with prompts in Modelfile MESSAGE format:
+
 ```
 MESSAGE user How can I reset my password?
 MESSAGE user How are you?
 MESSAGE user What is the capital of France?
+MESSAGE user Explain quantum computing in simple terms.
+MESSAGE user Write a short poem about technology.
 ```
+
+**Prompt File Rules:**
+- **Format**: `MESSAGE user <your prompt here>`
+- **Only user messages**: Only lines starting with `MESSAGE user` are processed
+- **One prompt per line**: Each line should contain one complete prompt
+- **UTF-8 encoding**: Save the file in UTF-8 encoding
+- **File extension**: Use `.txt` extension for easy identification
+
+**Benefits of Using Prompt Files:**
+- **Batch testing**: Test multiple prompts in one run
+- **Consistent testing**: Use the same set of prompts across different models
+- **Realistic scenarios**: Test with diverse, real-world prompts
+- **Automation**: Easy to integrate into automated testing workflows
+- **Comprehensive benchmarking**: Get performance metrics across different prompt types and lengths
 
 **Measured Metrics:**
 - Total tokens generated
@@ -110,11 +128,10 @@ MESSAGE user What is the capital of France?
   Metric                        Value                      
  ──────────────────────────────────────────────────────────
   Model                         Llama-3.2-1B-Instruct-GGUF
-  Total tokens                  346
-  Avg time to first token (s)   1.117
-  Tokens/sec                    30.97
-  Throughput speed (req/s)      0.90
-  Peak memory (MB)              1898.21
+  Avg time to first token (s)   2.514
+  Tokens/sec                    30.23
+  Throughput speed (req/s)      27.30
+  Peak memory (MB)              1896.89
 ```
 
 ## Configuration
